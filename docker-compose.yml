@@ -1,4 +1,0 @@
-ecsdeploy:
-    image: silintl/ecs-deploy
-    env_file:
-        - local.env

@@ -2,15 +2,14 @@
 
 NOW=$(date '+%d/%m/%Y %H:%M:%S')
 PRETEXT="${SERVICE} | ${NOW}"
-ENVIRONMENT=${ENVIRONMENT}
-TEXT="Deployment completed of ${SERVICE} with ${IMAGE} container in the ${ENVIRONMENT} environment"
+TEXT="Deployment completed of ${SERVICE} with ${IMAGE} container in the ${CLUSTER} environment"
 
 /usr/bin/curl \
     -X POST \
     -s \
     --data-urlencode "payload={ \
         \"channel\": \"$SLACK_CHANNEL\", \
-        \"username\": \"Deployment ECS ${ENVIRONMENT}\", \
+        \"username\": \"Deployment ECS ${CLUSTER}\", \
         \"pretext\": \"${PRETEXT}\", \
         \"color\": \"good\", \
         \"icon_emoji\": \":soon:\", \

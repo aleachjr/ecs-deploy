@@ -152,6 +152,9 @@ echo "New task definition: $NEW_TASKDEF";
 # Update the service
 UPDATE=`aws ecs update-service --cluster $CLUSTER --service $SERVICE --task-definition $NEW_TASKDEF`
 
+# Remove temporary files from the deployment
+rm -rf d1 def newdef results tasks updated
+
 # See if the service is able to come up again
 every=10
 i=0
@@ -170,6 +173,7 @@ do
   RUNNING=`grep -e "RUNNING" results`
 
   if [ "$RUNNING" ]; then
+    SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} ./slack_notification.sh
     echo "Service updated successfully, new task definition running.";
     exit 0
   fi
@@ -177,10 +181,3 @@ do
   sleep $every
   i=$(( $i + $every ))
 done
-
-# Remove temporary files from the deployment
-rm -rf d1 def newdef results tasks updated
-
-# Timeout
-echo "ERROR: New task definition not running within $TIMEOUT seconds"
-exit 1

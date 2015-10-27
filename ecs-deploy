@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 function usage() {
     set -e
@@ -124,85 +124,7 @@ if [ $IMAGE == false ]; then
     exit 1
 fi
 
-# Define regex for image name
-# This regex will create groups for:
-# - domain
-# - port
-# - repo
-# - image
-# - tag
-# If a group is missing it will be an empty string
-imageRegex="^([a-zA-Z0-9.\-]+):?([0-9]+)?/([a-zA-Z0-9\-]+)/?([a-zA-Z0-9\-]+)?:?([a-zA-Z0-9\-\.]+)?$"
-
-if [[ $IMAGE =~ $imageRegex ]]; then
-  # Define variables from matching groups
-  domain=${BASH_REMATCH[1]}
-  port=${BASH_REMATCH[2]}
-  repo=${BASH_REMATCH[3]}
-  img=${BASH_REMATCH[4]}
-  tag=${BASH_REMATCH[5]}
-
-  # Validate what we received to make sure we have the pieces needed
-  if [[ "x$domain" == "x" ]]; then
-    echo "Image name does not contain a domain or repo as expected. See usage for supported formats." && exit 1;
-  fi
-  if [[ "x$repo" == "x" ]]; then
-    echo "Image name is missing the actual image name. See usage for supported formats." && exit 1;
-  fi
-
-  # When a match for image is not found, the image name was picked up by the repo group, so reset variables
-  if [[ "x$img" == "x" ]]; then
-    img=$repo
-    repo=""
-  fi
-
-else
-  # check if using root level repo with format like mariadb or mariadb:latest
-  rootRepoRegex="^([a-zA-Z0-9\-]+):?([a-zA-Z0-9\.\-]+)?$"
-  if [[ $IMAGE =~ $rootRepoRegex ]]; then
-    img=${BASH_REMATCH[1]}
-    if [[ "x$img" == "x" ]]; then
-      echo "Invalid image name. See usage for supported formats." && exit 1
-    fi
-    tag=${BASH_REMATCH[2]}
-  else
-    echo "Unable to parse image name: $IMAGE, check the format and try again" && exit 1
-  fi
-fi
-
-# If tag is missing make sure we can get it from env var, or use latest as default
-if [[ "x$tag" == "x" ]]; then
-  if [[ $TAGVAR == false ]]; then
-    tag="latest"
-  else
-    tag=${!TAGVAR}
-    if [[ "x$tag" == "x" ]]; then
-      tag="latest"
-    fi
-  fi
-fi
-
-# Reassemble image name
-useImage=""
-if [[ "x$domain" != "x" ]]; then
-  useImage="$domain"
-fi
-if [[ "x$port" != "x" ]]; then
-  useImage="$useImage:$port"
-fi
-if [[ "x$repo" != "x" ]]; then
-  useImage="$useImage/$repo"
-fi
-if [[ "x$img" != "x" ]]; then
-  if [[ "x$useImage" == "x" ]]; then
-    useImage="$img"
-  else
-    useImage="$useImage/$img"
-  fi
-fi
-if [[ "x$tag" != "x" ]]; then
-  useImage="$useImage:$tag"
-fi
+useImage=$IMAGE
 
 echo "Using image name: $useImage"
 
@@ -214,10 +136,10 @@ echo "Current task definition: $TASK_DEFINITION";
 aws ecs describe-task-definition --task-def $TASK_DEFINITION > def
 
 # Update definition to use new image name
-sed -i def -e "s|\"image\": \".*\"|\"image\": \"${useImage}\"|"
+cat def | sed -e "s|\"image\": \".*\"|\"image\": \"${useImage}\"|" > updated
 
 # Filter the def
-jq < def > newdef '.taskDefinition|{family: .family, volumes: .volumes, containerDefinitions: .containerDefinitions}'
+jq < updated > newdef '.taskDefinition|{family: .family, volumes: .volumes, containerDefinitions: .containerDefinitions}'
 
 # Register the new task definition, and store its ARN
 NEW_TASKDEF=`aws ecs register-task-definition --cli-input-json file://newdef | jq .taskDefinition.taskDefinitionArn | tr -d '"'`
@@ -251,6 +173,9 @@ do
   sleep $every
   i=$(( $i + $every ))
 done
+
+# Remove temporary files from the deployment
+rm -rf d1 def newdef results tasks updated
 
 # Timeout
 echo "ERROR: New task definition not running within $TIMEOUT seconds"

@@ -10,7 +10,6 @@ TEXT="Deployment completed of ${SERVICE} with ${IMAGE} container in the ${CLUSTE
     --data-urlencode "payload={ \
         \"channel\": \"$SLACK_CHANNEL\", \
         \"username\": \"Deployment ECS ${CLUSTER}\", \
-        \"pretext\": \"${PRETEXT}\", \
         \"color\": \"good\", \
         \"icon_emoji\": \":soon:\", \
         \"text\": \"${TEXT}\" \

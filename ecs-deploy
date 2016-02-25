@@ -181,3 +181,7 @@ do
   sleep $every
   i=$(( $i + $every ))
 done
+
+SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} ./slack_notification.sh
+echo "Service failed to deploy successfully";
+exit 1

@@ -173,7 +173,7 @@ do
   RUNNING=`grep -e "RUNNING" results`
 
   if [ "$RUNNING" ]; then
-    SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} ./slack_notification.sh
+    SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} STATUS="successful" ./slack_notification.sh
     echo "Service updated successfully, new task definition running.";
     exit 0
   fi
@@ -182,6 +182,9 @@ do
   i=$(( $i + $every ))
 done
 
-SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} ./slack_notification.sh
+# Update the service back to the original
+UPDATE=`aws ecs update-service --cluster $CLUSTER --service $SERVICE --task-definition $TASK_DEFINITION`
+
+SERVICE=${SERVICE} CLUSTER=${CLUSTER} IMAGE=${IMAGE} STATUS="failed" ./slack_notification.sh
 echo "Service failed to deploy successfully";
 exit 1
